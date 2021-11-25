@@ -1,10 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
 <style>
-    .container {
-        border: 1px solid black;
-        text-align: center;
-    }
+
 </style>
 <head>
     <meta charset="UTF-8">
@@ -13,24 +10,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-    <script defer src="index.js" charset="utf-8"></script></head>
+    <script defer src="index.js" charset="utf-8"></script>
+</head>
 <body>
-    <div id="quotes">
-        <!---insert quotes here-->
-        <p>Ohkaaayyyy lets goo</p>
+    <div id="dates">
+        <br>
+        <!---insert start and end date here-->
+        <input id="begin" type="date">
+        <input id = end type="date">
     </div><br>
-    <div class="mypanel"></div>
-    <button id="buntski">sheesshh</button>
+    <div id="buttons">
+        
+        <button type="button" name="submit" onclick="myFunction()">Search</button>
+        <button type="button" name="clear" onclick="clearDates()">Clear dates</button>
+    </div>
 
-    <div id="cat-pic">
-        <!---cat pic here-->
     </div>
     <div id="container">
-        
+        <!--index.js fills this part-->
     </div>
 
 </body>
 <script>
-
+    function clearDates(target) {
+        begin.value="";
+        end.value="";
+    }
+    function myFunction () {
+    
+    var startDate = document.getElementById("begin").value;
+    var endDate = document.getElementById("end").value;
+    var unixStart = Math.floor(new Date(startDate).getTime() / 1000.0);
+    var unixEnd = Math.floor(new Date(endDate).getTime() / 1000.0);
+    api_url = `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart/range?vs_currency=eur&from=${unixStart}&to=${unixEnd}`;
+    console.log(unixStart, unixEnd)
+    $.getJSON(api_url, function(data) {
+        console.log(data)
+    });
+}
 </script>
 </html>
