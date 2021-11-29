@@ -15,8 +15,8 @@
 <body>
     <div id="dates">
         <br>
-        <input id="begin" type="date">
-        <input id = end type="date">
+        <input id="begin" type="date" onchange=>
+        <input id = "end"  type="date">
     </div><br>
     <div id="buttons">
         
@@ -35,55 +35,94 @@
         end.value="";
     }
     function searchData () {
-    document.getElementById("container").innerHTML = "";
-    var startDate = document.getElementById("begin").value;
-    var endDate = document.getElementById("end").value;
-    var unixStart = new Date(startDate).getTime() / 1000.0;
-    var unixEnd = new Date(endDate).getTime() / 1000.0;
-    api_url = `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart/range?vs_currency=eur&from=${unixStart}&to=${unixEnd}`;
-    console.log(unixStart, unixEnd)
 
-    var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        // get dates from input, convert them to epoch and search values API 
+        document.getElementById("container").innerHTML="";
+        var startDate = document.getElementById("begin").value;
+        var endDate = document.getElementById("end").value;
+
+        var unixStart = new Date(startDate).getTime() / 1000.0;
+        var unixEnd = new Date(endDate).getTime() / 1000.0;
+
+        api_url = `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart/range?vs_currency=eur&from=${unixStart}&to=${unixEnd}`;
+        var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
    
     
      
 
-    $.getJSON(api_url, function(data) {
-        var i = 0;
-        const container = data.prices.map(([aika, hinta]) => {
-            const myDate = new Date(aika);
-            if (myDate.getTimezoneOffset() > 0 ) {
-                myDate.setHours (myDate.getHours()- myDate.getTimezoneOffset()/60);
-            } else {
-                myDate.setHours (myDate.getHours() + myDate.getTimezoneOffset()/60);
-            }
-            document.getElementById("container").innerHTML += "<br>"+myDate.toDateString();
-            //console.log(aika, hinta);
-            return [aika,hinta];
-        });
+        $.getJSON(api_url, function(data) {
 
-        for (var  i = 1; i < container.length;) {
-            try {
-                var currentDate = new Date(container[i][0]).toDateString();
-                var previousDate = new Date(container[i-1][0]).toDateString();  
-                if (currentDate == previousDate) {
-                    container.splice(i,1);
+            //map through the object and save values into 3 separate arrays
+
+            const price_container = data.prices.map(([time, price]) => {
+                /*var myDate = new Date(time);
+                //myDate = myDate.toUTCString();
+                //myDate = myDate.substring(0, myDate.length - 13);
+                //document.getElementById("price_container").innerHTML += "<br>"+myDate.toDateString();
+                console.log(time, price);
+                */
+                return [time,price];
+            });
+
+            const marketcap_container = data.market_caps.map(([time, cap]) => {
+                /*var myDate = new Date(time);
+                myDate = myDate.toUTCString();
+                myDate = myDate.substring(0, myDate.length - 13);
+                */
+                return [time, cap];
+            });
+            const volumes_container = data.total_volumes.map (([time, volumes]) => {
+                /*var myDate = new Date(time);
+                myDate = myDate.toUTCString();
+                myDate = myDate.substring(0, myDate.length - 13);
+                */
+                return [time, volumes]
+            });
+            var fullArr = [];
+            var x = 1;
+            //checks if the 3 arrays' time values equal to another
+            //insert data from arrays to one combined array
+
+            for (var  i = 0; i < price_container.length;i++) {
+                try {
+                    if (price_container[i][0] == marketcap_container[i][0] && marketcap_container[i][0] == volumes_container[i][0])
+                    {
+                            var date = new Date(price_container[i][0]).toUTCString();
+                            date = date.substring(0, date.length - 13)
+                            fullArr.push([date, price_container[i][1], marketcap_container[i][1], volumes_container[i][1]]);           
+                            if (i != 0) {
+                                //change epoch into parsed timestamp and check 2 days values, if same value it is removed
     
-                }
-                else {
-                    break;
-                }
-            }catch {
-                console.log("Couldn't perform code")
-            }
-            finally {
-                continue;
-            }
+                                var currentDate = new Date(fullArr[x][0]).toUTCString();
+                                var previousDate = new Date(fullArr[x-1][0]).toUTCString();  
+            
+                                if (currentDate == previousDate) {
+                                    fullArr.splice(x,1);
+                                } 
+                                else {
+                                    x++;
+                                }     
+                            }
+
+                    }
+                        
+                } catch {
+                        
+                    console.log("messed up")
+                }  
 
         }
-        console.log(container);
+        console.log(fullArr);
+                fullArr.forEach((item) => {
+                    document.getElementById("container").innerHTML +=
+                    "<br> Day: " + item[0] + "<br> Price: " + item[1] + "<br> Market cap: " + 
+                    item[2] + "<br> Total volume: " + item[3] + "<br>";
+                })
+        
+        });
+    }
 
-    });
-}
+
+
 </script>
 </html>
