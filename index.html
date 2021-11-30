@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
-<style>
 
-</style>
 <head>
     <meta charset="UTF-8">
 
@@ -15,7 +13,7 @@
 <body>
     <div id="dates">
         <br>
-        <input id="begin" type="date" onchange=>
+        <input id="begin" type="date">
         <input id = "end"  type="date">
     </div><br>
     <div id="buttons">
@@ -24,20 +22,23 @@
         <button type="button" name="clear" onclick="clearDates()">Clear dates</button>
     </div>
     <div id="price_fall"></div>
-    </div>
     <div id="container">
     </div>
-
 </body>
 <script>
     function clearDates(target) {
         begin.value="";
         end.value="";
+        
+        
     }
     function searchData () {
 
-        // get dates from input, convert them to epoch and search values API 
+        // every time new search is made, clear the page of previous data
         document.getElementById("container").innerHTML="";
+        document.getElementById("price_fall").innerHTML="";
+
+        // get dates from input, convert them to epoch and search values API 
         var startDate = document.getElementById("begin").value;
         var endDate = document.getElementById("end").value;
 
@@ -45,11 +46,8 @@
         var unixEnd = new Date(endDate);
         unixEnd.setHours(unixEnd.getHours() + 24)
         unixEnd = unixEnd.getTime() /1000.0
-        console.log(unixEnd)
-        console.log(new Date(endDate).getTime())
 
         api_url = `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart/range?vs_currency=eur&from=${unixStart}&to=${unixEnd}`;
-        var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
    
     
      
@@ -59,58 +57,43 @@
             //map through the object and save values into 3 separate arrays
 
             const price_container = data.prices.map(([time, price]) => {
-                /*var myDate = new Date(time);
-                //myDate = myDate.toUTCString();
-                //myDate = myDate.substring(0, myDate.length - 13);
-                //document.getElementById("price_container").innerHTML += "<br>"+myDate.toDateString();
-                console.log(time, price);
-                */
                 return [time,price];
             });
 
             const marketcap_container = data.market_caps.map(([time, cap]) => {
-                /*var myDate = new Date(time);
-                myDate = myDate.toUTCString();
-                myDate = myDate.substring(0, myDate.length - 13);
-                */
                 return [time, cap];
             });
             const volumes_container = data.total_volumes.map (([time, volumes]) => {
-                /*var myDate = new Date(time);
-                myDate = myDate.toUTCString();
-                myDate = myDate.substring(0, myDate.length - 13);
-                */
                 return [time, volumes]
             });
-            var fullArr = [];
-            var x = 1;
-            //uses x as index for deletion, if value changes, index is changed to the next for check-up
+
+            //uses x as index for deletion, if date value changes, index is increased +1
             //checks if the 3 arrays' time values equal to another
             //insert data from arrays to one combined array
+            var fullArr = [];
+            var x = 1;
 
             for (var  i = 0; i < price_container.length;i++) {
                 try {
                     if (price_container[i][0] == marketcap_container[i][0] && marketcap_container[i][0] == volumes_container[i][0])
                     {
-                            var date = new Date(price_container[i][0]).toUTCString();
-                            date = date.substring(0, date.length - 13)
-                            fullArr.push([date, price_container[i][1], marketcap_container[i][1], volumes_container[i][1]]);           
-                            if (i != 0) {
-                                //change epoch into parsed timestamp and check 2 days values, if same value it is removed
-    
-                                var currentDate = new Date(fullArr[x][0]).toUTCString();
-                                var previousDate = new Date(fullArr[x-1][0]).toUTCString();  
-            
-                                if (currentDate == previousDate) {
-                                    fullArr.splice(x,1);
-                                } 
-                                else {
-                                    x++;
-                                }     
-                            }
+                        var date = new Date(price_container[i][0]).toUTCString();
+                        date = date.substring(0, date.length - 13)
+                        fullArr.push([date, price_container[i][1], marketcap_container[i][1], volumes_container[i][1]]);           
+                        if (i != 0) {
+                            //change epoch into parsed timestamp and check 2 days values, if same value next is removed
 
+                            var currentDate = new Date(fullArr[x][0]).toUTCString();
+                            var previousDate = new Date(fullArr[x-1][0]).toUTCString();  
+        
+                            if (currentDate == previousDate) {
+                                fullArr.splice(x,1);
+                            } 
+                            else {
+                                x++;
+                            }     
+                        }
                     }
-                        
                 } catch {
                         
                     console.log("messed up")
@@ -120,29 +103,49 @@
         console.log(fullArr);
         var fall = 0;
         var check = 0;
-                    for (var i = 0; i < fullArr.length;i++) {
-                        if(i!=0){
-                            if (fullArr[i][1] < fullArr[i-1][1]) {
-                                check++;
-                                if (check > fall) {
-                                    fall = check;
-                                }
-    
-                            } else if (fullArr[i][1]> fullArr[i-1][1]){
-                                check = 0;
-                            }
-                        }
+        var highest_volume = 0;
+        var day = "";
 
-                    
-                    document.getElementById("container").innerHTML += 
-                    "<br> Day: " + fullArr[i][0] + "<br> Price: " + fullArr[i][1] + "<br> Market cap: " + 
-                    fullArr[i][2] + "<br> Total volume: " + fullArr[i][3] + "<br>";
+        for (var i = 0; i < fullArr.length;i++) {
+            //checks how many days in a row price has decreased, check tracks how many days in a row
+            //fall stores the highest price decrease in a row 
+            //second if tracks the highest volume between given dates
+            //first days volume recorded in catch
+            try {
+                if (fullArr[i][1] < fullArr[i-1][1]) {
+                    check++;
+                    if (check > fall) {
+                        fall = check;
                     }
-                    document.getElementById("price_fall").innerHTML += "<br>Price has descended for " + fall + " days in a row" +
-                    " for the inputs from " + startDate + " and to " + endDate;
+
+                } else if (fullArr[i][1]> fullArr[i-1][1]){
+                    check = 0;
+                }
+
+                if (fullArr[i][3] > highest_volume) {
+                    highest_volume = fullArr[i][3]
+                    day = fullArr[i][0] 
+                }
+
+                }
+            
+            catch {
+                highest_volume = fullArr[i][3];
+                console.log("error")
+            }
+                        
+            //write days and values to html one by one
+            document.getElementById("container").innerHTML += 
+            "<br> Day: " + fullArr[i][0] + "<br> Price: " + fullArr[i][1] + "<br> Market cap: " + 
+            fullArr[i][2] + "<br> Total volume: " + fullArr[i][3] + "<br>";
+            }
+            //on top of the page, write highest row and biggest volume of all dates
+            document.getElementById("price_fall").innerHTML += "<br>Price has decreased for " + fall + " days in a row" +
+            " for the inputs from " + startDate + " and to " + endDate + "<br><br>" +
+            day+" with the highest trading volume: " + Number((highest_volume).toFixed(1)).toLocaleString() + "€";
     });
 
-    }
+}
 
 </script>
 </html>
