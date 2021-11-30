@@ -23,7 +23,7 @@
         <button type="button" name="submit" onclick="searchData()">Search</button>
         <button type="button" name="clear" onclick="clearDates()">Clear dates</button>
     </div>
-
+    <div id="price_fall"></div>
     </div>
     <div id="container">
     </div>
@@ -42,7 +42,11 @@
         var endDate = document.getElementById("end").value;
 
         var unixStart = new Date(startDate).getTime() / 1000.0;
-        var unixEnd = new Date(endDate).getTime() / 1000.0;
+        var unixEnd = new Date(endDate);
+        unixEnd.setHours(unixEnd.getHours() + 24)
+        unixEnd = unixEnd.getTime() /1000.0
+        console.log(unixEnd)
+        console.log(new Date(endDate).getTime())
 
         api_url = `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart/range?vs_currency=eur&from=${unixStart}&to=${unixEnd}`;
         var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -80,6 +84,7 @@
             });
             var fullArr = [];
             var x = 1;
+            //uses x as index for deletion, if value changes, index is changed to the next for check-up
             //checks if the 3 arrays' time values equal to another
             //insert data from arrays to one combined array
 
@@ -113,16 +118,31 @@
 
         }
         console.log(fullArr);
-                fullArr.forEach((item) => {
-                    document.getElementById("container").innerHTML +=
-                    "<br> Day: " + item[0] + "<br> Price: " + item[1] + "<br> Market cap: " + 
-                    item[2] + "<br> Total volume: " + item[3] + "<br>";
-                })
-        
-        });
+        var fall = 0;
+        var check = 0;
+                    for (var i = 0; i < fullArr.length;i++) {
+                        if(i!=0){
+                            if (fullArr[i][1] < fullArr[i-1][1]) {
+                                check++;
+                                if (check > fall) {
+                                    fall = check;
+                                }
+    
+                            } else if (fullArr[i][1]> fullArr[i-1][1]){
+                                check = 0;
+                            }
+                        }
+
+                    
+                    document.getElementById("container").innerHTML += 
+                    "<br> Day: " + fullArr[i][0] + "<br> Price: " + fullArr[i][1] + "<br> Market cap: " + 
+                    fullArr[i][2] + "<br> Total volume: " + fullArr[i][3] + "<br>";
+                    }
+                    document.getElementById("price_fall").innerHTML += "<br>Price has descended for " + fall + " days in a row" +
+                    " for the inputs from " + startDate + " and to " + endDate;
+    });
+
     }
-
-
 
 </script>
 </html>
