@@ -13,7 +13,6 @@
 </style>
 <head>
     <meta charset="UTF-8">
-
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
@@ -21,15 +20,15 @@
 </head>
 <body>
     <div class="top_bar">
-            <br>
+            <p>Large searchs may take couple of seconds to complete.</p>
             <input id="begin" type="date">
             <input id = "end"  type="date">
         <br><br>
             <input type="button" name="submit" onclick="searchData()" value="Search"/>
             <input type="button" name="clear" onclick="clearDates()"value = "Clear dates"/>
-        <div id="price_fall"></div>
-        <div id="price_container">
-        </div>
+        <div id="top_bar"></div>
+
+        <div id="price_container"></div>
     
     </div>
 </body>
@@ -42,7 +41,7 @@
 
         // every time new search is made, clear the page of previous data
         document.getElementById("price_container").innerHTML="";
-        document.getElementById("price_fall").innerHTML="";
+        document.getElementById("top_bar").innerHTML="";
 
         // get dates from input, convert them to epoch and search values API 
         var startDate = document.getElementById("begin").value;
@@ -155,8 +154,8 @@
             "<br> Day: " + fullArr[i][0] + " <br> Price: " + Number(fullArr[i][1]).toLocaleString() + " €<br> Market cap: " + 
             Number(fullArr[i][2]).toLocaleString() + " €<br> Total volume: " + Number(fullArr[i][3]).toLocaleString() + " € <br>";
         }
-        //on top of the page, write highest row and biggest volume of all dates
-        document.getElementById("price_fall").innerHTML += "<br>Price has decreased for " + fall + " days in a row" +
+        //writes on top of the page the highest row and the biggest volume of all dates
+        document.getElementById("top_bar").innerHTML += "<br>Price has decreased for " + fall + " days in a row" +
         " for the inputs from " + startDate + " and to " + endDate + "<br><br>" +
         day + " with the highest trading volume: " + Number((highest_volume).toFixed(1)).toLocaleString() + " €";
         
@@ -169,10 +168,10 @@
         let check_buy_day = 0;
         let sell_day = 0;
 
-        //check_profit is used to calculate all profits, when highest only stores the value
+        //profit is used to calculate all profits, when highest only stores the value
         let highest_profit = 0;
+        let profit= 0;
         let check_profit = 0;
-        let check_buy_profit = 0;
 
         //first_date is used only to set the first day as the "buy_day"
         //decrease_only informs if there has not been any rise in the prices
@@ -192,20 +191,29 @@
                             first_date_exists = true;
                         }
                         //calculates most profit from start date to current date
-                        //check if later is higher profit than earlier (check_buy_day & check_buy_profit)
-                        check_profit = fullArr[x][1] - fullArr[buy_day][1]
-                        check_buy_profit = fullArr[check_buy_day][1] - fullArr[x][1]
+                        //check if later is higher profit than earlier (check_buy_day & check_profit)
 
-                        if (check_profit > highest_profit) {
-                            if (check_buy_profit > check_profit) {
-                                buy_day = check_buy_day;
-                            }
+                        //profit runs from buy_day to end
+                        //check_profit checks from all time lowest to end 
+                        profit= fullArr[x][1] - fullArr[buy_day][1]
+                        check_profit = fullArr[x][1] - fullArr[check_buy_day][1]
+
+                        //if profit calculator exceeds previous highest profit, replace the value
+                        if (profit> highest_profit) {
                             highest_profit = fullArr[x][1] - fullArr[buy_day][1];
                             sell_day = fullArr[x][0];
+                        } 
+                        // checks if
+                        if (check_profit > profit) {
+                            buy_day = check_buy_day;
                         }
                         x++;
                     }
+                    //if price is lower than the previous lowest, store it in variable used for checking
                     if (fullArr[x][1] < fullArr[buy_day][1] && fullArr[x][0] != last_item[0]) {
+                        if(buy_day == 0) {
+                            buy_day = x;
+                        }
                         check_buy_day = x
                     }
                     x++;
@@ -216,11 +224,11 @@
                 console.log("error in buying/selling function")
             }
         if (decrease_only == true) {
-            document.getElementById("price_fall").innerHTML += "<br><br>You should not be selling or buying bitcoin at any day";
+            document.getElementById("top_bar").innerHTML += "<br><br>You should not be selling or buying bitcoin at any day";
         }
         else if (decrease_only == false) 
         {
-            document.getElementById("price_fall").innerHTML += "<br><br>You should buy bitcoin at " + fullArr[buy_day][0] + " and sell them at "+ sell_day;
+            document.getElementById("top_bar").innerHTML += "<br><br>You should buy bitcoin at " + fullArr[buy_day][0] + " and sell them at "+ sell_day;
         }
     }
 }
