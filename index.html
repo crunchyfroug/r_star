@@ -28,7 +28,7 @@
             <input type="button" name="submit" onclick="searchData()" value="Search"/>
             <input type="button" name="clear" onclick="clearDates()"value = "Clear dates"/>
         <div id="price_fall"></div>
-        <div id="container">
+        <div id="price_container">
         </div>
     
     </div>
@@ -37,13 +37,11 @@
     function clearDates(target) {
         begin.value="";
         end.value="";
-        
-        
     }
     function searchData () {
 
         // every time new search is made, clear the page of previous data
-        document.getElementById("container").innerHTML="";
+        document.getElementById("price_container").innerHTML="";
         document.getElementById("price_fall").innerHTML="";
 
         // get dates from input, convert them to epoch and search values API 
@@ -57,9 +55,6 @@
 
         api_url = `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart/range?vs_currency=eur&from=${unixStart}&to=${unixEnd}`;
    
-    
-     
-
         $.getJSON(api_url, function(data) {
 
             //map through the object and save values into 3 separate arrays
@@ -74,51 +69,63 @@
             const volumes_container = data.total_volumes.map (([time, volumes]) => {
                 return [time, volumes]
             });
-
-            //uses x as index for deletion, if date value changes, index is increased +1
-            //checks if the 3 arrays' time values equal to another
-            //insert data from arrays to one combined array
             var fullArr = [];
-            var x = 1;
 
-            for (var  i = 0; i < price_container.length;i++) {
-                try {
-                    if (price_container[i][0] == marketcap_container[i][0] && marketcap_container[i][0] == volumes_container[i][0])
-                    {
-                        var date = new Date(price_container[i][0]).toUTCString();
-                        date = date.substring(0, date.length - 13)
-                        fullArr.push([date, price_container[i][1], marketcap_container[i][1], volumes_container[i][1]]);           
-                        if (i != 0) {
-                            //change epoch into parsed timestamp and check 2 days values, if same value next is removed
+            parseFullArray(fullArr, price_container, marketcap_container, volumes_container);
+            
+            checkDecreaseAndVolume(fullArr);
 
-                            var currentDate = new Date(fullArr[x][0]).toUTCString();
-                            var previousDate = new Date(fullArr[x-1][0]).toUTCString();  
-        
-                            if (currentDate == previousDate) {
-                                fullArr.splice(x,1);
-                            } 
-                            else {
-                                x++;
-                            }     
-                        }
+            buyAndSellDays(fullArr);
+
+    });    
+
+
+    function parseFullArray (fullArr, price_container, marketcap_container, volumes_container) {
+        //uses x as index for deletion, if date value changes, index is increased +1
+        //checks if the 3 arrays' time values equal to another
+        //insert data from arrays to one combined array
+        let x = 1;
+
+        for (var  i = 0; i < price_container.length;i++) {
+            try {
+                if (price_container[i][0] == marketcap_container[i][0] && marketcap_container[i][0] == volumes_container[i][0])
+                {
+                    var date = new Date(price_container[i][0]).toUTCString();
+                    date = date.substring(0, date.length - 13)
+                    fullArr.push([date, price_container[i][1], marketcap_container[i][1], volumes_container[i][1]]);           
+                    if (i != 0) {
+                        //change epoch into parsed timestamp and check 2 days values, if same value next is removed
+
+                        var currentDate = new Date(fullArr[x][0]).toUTCString();
+                        var previousDate = new Date(fullArr[x-1][0]).toUTCString();  
+
+                        if (currentDate == previousDate) {
+                            fullArr.splice(x,1);
+                        } 
+                        else {
+                            x++;
+                        }     
                     }
-                } catch {
-                        
-                    console.log("messed up")
-                }  
+                }
+            } catch {
+                    
+                console.log("messed up")
+            }  
 
-        }
-        console.log(fullArr);
-        var fall = 0;
-        var check = 0;
-        var highest_volume = 0;
-        var day = "";
+    }
+
+    }
+    function checkDecreaseAndVolume (fullArr) {
+        let fall = 0;
+        let check = 0;
+        let highest_volume = 0;
+        let day = "";
 
         for (var i = 0; i < fullArr.length;i++) {
-            //checks how many days in a row price has decreased, check tracks how many days in a row
-            //fall stores the highest price decrease in a row 
-            //second if tracks the highest volume between given dates
-            //first days volume recorded in catch
+            //first if/else if checks how many days in a row price has decreased, check tracks how many days in a row
+            //fall variable stores the highest price decrease in a row 
+            //second if statement tracks the highest volume between given dates
+            //first day's volume recorded in catch statement
             try {
                 if (fullArr[i][1] < fullArr[i-1][1]) {
                     check++;
@@ -144,60 +151,78 @@
             }
                         
             //write days and values to html one by one
-            document.getElementById("container").innerHTML += 
+            document.getElementById("price_container").innerHTML += 
             "<br> Day: " + fullArr[i][0] + " <br> Price: " + Number(fullArr[i][1]).toLocaleString() + " €<br> Market cap: " + 
             Number(fullArr[i][2]).toLocaleString() + " €<br> Total volume: " + Number(fullArr[i][3]).toLocaleString() + " € <br>";
         }
-            //on top of the page, write highest row and biggest volume of all dates
-            document.getElementById("price_fall").innerHTML += "<br>Price has decreased for " + fall + " days in a row" +
-            " for the inputs from " + startDate + " and to " + endDate + "<br><br>" +
-            day + " with the highest trading volume: " + Number((highest_volume).toFixed(1)).toLocaleString() + " €";
+        //on top of the page, write highest row and biggest volume of all dates
+        document.getElementById("price_fall").innerHTML += "<br>Price has decreased for " + fall + " days in a row" +
+        " for the inputs from " + startDate + " and to " + endDate + "<br><br>" +
+        day + " with the highest trading volume: " + Number((highest_volume).toFixed(1)).toLocaleString() + " €";
+        
+        return fullArr;
+    }
+    function buyAndSellDays (fullArr) {
 
-            var buy_day = 0;
-            var sell_day = 0;
+        // buy_day and sell_day used as an index for the correct day
+        let buy_day = 0;
+        let check_buy_day = 0;
+        let sell_day = 0;
 
-            var highest_profit = 0;
-            var check_profit = 0;
+        //check_profit is used to calculate all profits, when highest only stores the value
+        let highest_profit = 0;
+        let check_profit = 0;
+        let check_buy_profit = 0;
 
-            var set_buy_loop = false;
-            var decrease_only = true; 
-            var x = 1
+        //first_date is used only to set the first day as the "buy_day"
+        //decrease_only informs if there has not been any rise in the prices
+        let first_date_exists = false;
+        let decrease_only = true; 
+        var x = 1;
 
-            var last_item = fullArr[fullArr.length-1];
-                try {  
-                    while(x < fullArr.length) {
-                        while(fullArr[x][1]>fullArr[x-1][1]) {
-                            decrease_only = false;
-                            if(set_buy_loop == false)
-                            {
-                                buy_day = x-1;
-                                set_buy_loop = true;
-                            }
-                            check_profit = fullArr[x][1] - fullArr[buy_day][1]
-                            if (check_profit > highest_profit) {
-                                highest_profit = fullArr[x][1] - fullArr[buy_day][1];
-                                sell_day = fullArr[x][0];
-                            }
-                            x++;
+        var last_item = fullArr[fullArr.length-1];
+            try {  
+                while(x < fullArr.length) {
+                    //loop until the price is lower than the previous day's price
+                    while(fullArr[x][1]>fullArr[x-1][1]) {
+                        decrease_only = false;
+                        if(first_date_exists == false)
+                        {
+                            buy_day = x-1;
+                            first_date_exists = true;
                         }
-                        if (fullArr[x][1] < fullArr[buy_day][1] && fullArr[x][0] != last_item[0]) {
-                            buy_day = x
+                        //calculates most profit from start date to current date
+                        //check if later is higher profit than earlier (check_buy_day & check_buy_profit)
+                        check_profit = fullArr[x][1] - fullArr[buy_day][1]
+                        check_buy_profit = fullArr[check_buy_day][1] - fullArr[x][1]
+
+                        if (check_profit > highest_profit) {
+                            if (check_buy_profit > check_profit) {
+                                buy_day = check_buy_day;
+                            }
+                            highest_profit = fullArr[x][1] - fullArr[buy_day][1];
+                            sell_day = fullArr[x][0];
                         }
                         x++;
                     }
-
-                } 
-                catch {
-                    console.log("error in buying/selling function")
+                    if (fullArr[x][1] < fullArr[buy_day][1] && fullArr[x][0] != last_item[0]) {
+                        check_buy_day = x
+                    }
+                    x++;
                 }
-            if (decrease_only == true) {
-                document.getElementById("price_fall").innerHTML += "<br><br>You should not be selling or buying bitcoin at any day";
+
+            } 
+            catch {
+                console.log("error in buying/selling function")
             }
-            else if (decrease_only == false) 
-            {
-                document.getElementById("price_fall").innerHTML += "<br><br>You should buy bitcoin at " + fullArr[buy_day][0] + " and sell them at "+ sell_day;
-            }
-    });
+        if (decrease_only == true) {
+            document.getElementById("price_fall").innerHTML += "<br><br>You should not be selling or buying bitcoin at any day";
+        }
+        else if (decrease_only == false) 
+        {
+            document.getElementById("price_fall").innerHTML += "<br><br>You should buy bitcoin at " + fullArr[buy_day][0] + " and sell them at "+ sell_day;
+        }
+    }
 }
 </script>
 </html>
