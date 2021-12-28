@@ -200,20 +200,18 @@
 
                         //if profit calculator exceeds previous highest profit, replace the value
                         if (profit> highest_profit) {
-                            highest_profit = fullArr[x][1] - fullArr[buy_day][1];
+                            highest_profit = profit;
                             sell_day = fullArr[x][0];
                         } 
                         // checks if
-                        if (check_profit > profit) {
+                        if (check_profit > highest_profit) {
                             buy_day = check_buy_day;
+                            sell_day = fullArr[x][0]
                         }
                         x++;
                     }
                     //if price is lower than the previous lowest, store it in variable used for checking
                     if (fullArr[x][1] < fullArr[buy_day][1] && fullArr[x][0] != last_item[0]) {
-                        if(buy_day == 0) {
-                            buy_day = x;
-                        }
                         check_buy_day = x
                     }
                     x++;
